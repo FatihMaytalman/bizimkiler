@@ -6,7 +6,7 @@ function resolveApiBaseUrl(): string {
     return raw.replace(/\/$/, '');
   }
 
-  // Local `next build` without env vars; production deploys must set NEXT_PUBLIC_API_BASE_URL.
+  // Local `next build` / typecheck without env vars; production deploys must set NEXT_PUBLIC_API_BASE_URL.
   return 'http://localhost:3001/api';
 }
 

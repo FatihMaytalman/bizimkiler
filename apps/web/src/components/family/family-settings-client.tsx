@@ -10,6 +10,7 @@ import {
   fetchInvites,
   fetchMembers,
 } from '@/lib/api';
+import { getSiteUrl } from '@/lib/urls';
 
 const RELATIONSHIPS = [
   'mother',
@@ -39,7 +40,7 @@ export function FamilySettingsClient({ familyId }: FamilySettingsClientProps) {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [relationship, setRelationship] = useState<string>('other');
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const siteUrl = getSiteUrl();
 
   const membersQuery = useQuery({
     queryKey: ['members', familyId],
