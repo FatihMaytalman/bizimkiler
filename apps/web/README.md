@@ -38,7 +38,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The app listens on port `3000` by default.
+The app binds to `0.0.0.0` and listens on `PORT` when set. Local `npm run dev` falls back to port `3000`; production `npm run start` requires `PORT` (set to `3000` in the self-hosted Compose stack).
 
 ## Self-hosted routing
 
