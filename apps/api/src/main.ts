@@ -12,7 +12,7 @@ async function bootstrap(): Promise<void> {
   );
 
   await app.register(multipart, {
-    limits: { fileSize: 10 * 1024 * 1024 },
+    limits: { fileSize: 25 * 1024 * 1024 },
   });
 
   app.setGlobalPrefix('api');

@@ -16,6 +16,7 @@ interface SidebarNavProps {
 const navItems = (familyId: string): NavItem[] => [
   { href: `/family/${familyId}`, label: 'Dashboard' },
   { href: `/family/${familyId}/timeline`, label: 'Timeline' },
+  { href: `/family/${familyId}/echo-tap`, label: 'EchoTap' },
   { href: `/family/${familyId}/upload`, label: 'Upload' },
   { href: `/family/${familyId}/people`, label: 'People' },
   { href: `/family/${familyId}/tree`, label: 'Family Tree' },

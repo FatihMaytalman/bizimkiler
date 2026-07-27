@@ -17,7 +17,7 @@ export default async function TimelinePage({ params }: TimelinePageProps) {
         <p className="text-sm uppercase tracking-[0.24em] text-gold-500">Timeline</p>
         <h2 className="mt-2 font-display text-4xl text-cream-50">Family memories</h2>
         <p className="mt-3 max-w-2xl text-warm-white/70">
-          Bizimkiler — One Photo. One Memory. One Family.
+          Bizimkiler — one photo, one voice note, one memory, one family.
         </p>
       </section>
       <TimelineClient familyId={id} />

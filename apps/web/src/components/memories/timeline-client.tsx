@@ -8,6 +8,7 @@ import {
   fetchMemories,
   toggleMemoryReaction,
 } from '@/lib/api';
+import { MemoryAudio } from '@/components/memories/memory-audio';
 import { MemoryPhoto } from '@/components/memories/memory-photo';
 
 interface TimelineClientProps {
@@ -39,11 +40,16 @@ export function TimelineClient({ familyId }: TimelineClientProps) {
       <Card>
         <CardTitle>No memories yet</CardTitle>
         <CardDescription>
-          Upload your first family photo — one photo, one memory, one family.
+          Add the first photo or EchoTap voice memory for this family.
         </CardDescription>
-        <Link href={`/family/${familyId}/upload`} className="mt-4 inline-block">
-          <Button>Add a memory</Button>
-        </Link>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link href={`/family/${familyId}/echo-tap`}>
+            <Button>Record with EchoTap</Button>
+          </Link>
+          <Link href={`/family/${familyId}/upload`}>
+            <Button variant="secondary">Upload photo</Button>
+          </Link>
+        </div>
       </Card>
     );
   }
@@ -52,8 +58,15 @@ export function TimelineClient({ familyId }: TimelineClientProps) {
     <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
       {memories.map((memory) => (
         <Card key={memory.id} className="overflow-hidden">
-          <MemoryPhoto memoryId={memory.id} />
+          {memory.memoryKind === 'voice' ? (
+            <MemoryAudio memoryId={memory.id} />
+          ) : (
+            <MemoryPhoto memoryId={memory.id} />
+          )}
           <div className="p-4 space-y-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-warm-white/40">
+              {memory.memoryKind === 'voice' ? 'EchoTap voice' : 'Photo memory'}
+            </p>
             <p className="text-cream-50">{memory.caption}</p>
             <p className="text-xs text-warm-white/50">
               {memory.authorName}

@@ -1,0 +1,26 @@
+import type { Metadata } from 'next';
+import { EchoTapCapture } from '@/components/memories/echo-tap-capture';
+
+export const metadata: Metadata = {
+  title: 'EchoTap',
+};
+
+interface EchoTapPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function EchoTapPage({ params }: EchoTapPageProps) {
+  const { id } = await params;
+  return (
+    <div className="mx-auto max-w-xl space-y-6">
+      <div>
+        <p className="text-sm uppercase tracking-[0.24em] text-turquoise-500">EchoTap</p>
+        <h2 className="mt-2 font-display text-4xl text-cream-50">Record a family story</h2>
+        <p className="mt-3 text-warm-white/70">
+          Voice-first memory capture for relatives who would rather speak than type.
+        </p>
+      </div>
+      <EchoTapCapture familyId={id} />
+    </div>
+  );
+}

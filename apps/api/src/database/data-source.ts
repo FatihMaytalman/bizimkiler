@@ -22,6 +22,7 @@ import { InitialSchema1730000000000 } from './migrations/1730000000000-InitialSc
 import { MediaDedupProvenance1730000001000 } from './migrations/1730000001000-MediaDedupProvenance';
 import { ImmichSyncAndDedup1730000002000 } from './migrations/1730000002000-ImmichSyncAndDedup';
 import { SocialMemoriesRelationships1730000003000 } from './migrations/1730000003000-SocialMemoriesRelationships';
+import { EchoTapVoiceMemories1730000004000 } from './migrations/1730000004000-EchoTapVoiceMemories';
 
 loadEnv({ path: ['.env', '.env.local'] });
 
@@ -36,6 +37,11 @@ export const entities = [
   DeduplicationCandidateEntity,
   ImmichSyncStateEntity,
   AuditEventEntity,
+  FamilyInviteEntity,
+  MemoryEntity,
+  MemoryCommentEntity,
+  MemoryReactionEntity,
+  RelationshipEdgeEntity,
 ];
 
 export const migrations = [
@@ -43,6 +49,7 @@ export const migrations = [
   MediaDedupProvenance1730000001000,
   ImmichSyncAndDedup1730000002000,
   SocialMemoriesRelationships1730000003000,
+  EchoTapVoiceMemories1730000004000,
 ];
 
 export const AppDataSource = new DataSource({
