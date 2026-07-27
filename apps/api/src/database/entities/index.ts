@@ -14,6 +14,7 @@ export {
   MEMBER_RELATIONSHIPS,
   MemoryCommentEntity,
   MemoryEntity,
+  MemoryKind,
   MemoryReactionEntity,
   RelationshipEdgeEntity,
   RelationshipEdgeType,
