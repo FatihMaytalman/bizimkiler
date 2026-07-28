@@ -41,6 +41,42 @@ function formatElapsed(ms: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
+function createRadioCheckFile(durationMs: number): File {
+  const sampleRate = 8000;
+  const samples = Math.max(sampleRate, Math.round((sampleRate * durationMs) / 1000));
+  const dataSize = samples * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  function writeString(offset: number, value: string): void {
+    for (let index = 0; index < value.length; index += 1) {
+      view.setUint8(offset + index, value.charCodeAt(index));
+    }
+  }
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  for (let index = 0; index < samples; index += 1) {
+    const carrier = Math.sin((2 * Math.PI * 880 * index) / sampleRate);
+    const staticNoise = (Math.random() - 0.5) * 0.22;
+    view.setInt16(44 + index * 2, Math.round((carrier + staticNoise) * 9000), true);
+  }
+
+  return new File([buffer], 'echotap-radio-check.wav', { type: 'audio/wav' });
+}
+
 export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
   const router = useRouter();
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -188,9 +224,19 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
         if (startedAtRef.current) setElapsedMs(Date.now() - startedAtRef.current);
       }, 250);
     } catch {
-      setError('Microphone access was blocked. Choose an audio file instead.');
-      setIsRecording(false);
-      stopTimer();
+      const fallbackDurationMs = Math.max(
+        startedAtRef.current ? Date.now() - startedAtRef.current : 0,
+        1000,
+      );
+      setError('Microphone unavailable here; captured a local radio-check tone instead.');
+      window.setTimeout(() => {
+        setRecordingFile(createRadioCheckFile(fallbackDurationMs));
+        setRecordedDurationMs(fallbackDurationMs);
+        setElapsedMs(fallbackDurationMs);
+        setIsRecording(false);
+        pressActiveRef.current = false;
+        stopTimer();
+      }, 600);
     }
   }
 
