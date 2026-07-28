@@ -274,11 +274,11 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
             {isRecording ? 'Transmitting' : recordingFile ? 'Transmission ready' : 'Channel open'}
           </p>
 
-          <Button
+          <button
             className={
               isRecording
-                ? 'mx-auto mt-5 flex min-h-32 min-w-32 rounded-full bg-red-500 text-white hover:bg-red-500/90'
-                : 'mx-auto mt-5 flex min-h-32 min-w-32 rounded-full text-base'
+                ? 'mx-auto mt-5 inline-flex min-h-32 min-w-32 items-center justify-center rounded-full bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-500/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-navy-950 disabled:cursor-not-allowed disabled:opacity-50'
+                : 'mx-auto mt-5 inline-flex min-h-32 min-w-32 items-center justify-center rounded-full bg-gold-500 px-4 py-2.5 text-base font-medium text-navy-950 transition hover:bg-gold-500/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-navy-950 disabled:cursor-not-allowed disabled:opacity-50'
             }
             type="button"
             onClick={toggleTransmission}
@@ -297,7 +297,7 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
             disabled={mutation.isPending}
           >
             {isRecording ? 'End transmission' : 'Key mic'}
-          </Button>
+          </button>
           <p className="mt-4 text-center text-sm text-warm-white/60">
             {isRecording
               ? 'Live mic is hot. Click again or release the key to close the transmission.'
