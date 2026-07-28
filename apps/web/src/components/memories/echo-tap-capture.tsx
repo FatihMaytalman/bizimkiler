@@ -49,6 +49,7 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
   const startedAtRef = useRef<number | null>(null);
   const intervalRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const pressActiveRef = useRef(false);
 
   const [channel, setChannel] = useState('CH-01 Family Net');
   const [callSign, setCallSign] = useState('FAMILY-1');
@@ -195,6 +196,19 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
     }
   }
 
+  function beginTransmission(): void {
+    if (pressActiveRef.current || mutation.isPending) {
+      return;
+    }
+    pressActiveRef.current = true;
+    void startRecording();
+  }
+
+  function endTransmission(): void {
+    pressActiveRef.current = false;
+    stopRecording();
+  }
+
   return (
     <Card>
       <CardTitle>EchoTap Radio</CardTitle>
@@ -255,23 +269,28 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
                 : 'mx-auto mt-5 flex min-h-32 min-w-32 rounded-full text-base'
             }
             type="button"
-            onPointerDown={(event) => {
+            onMouseDown={(event) => {
               event.preventDefault();
-              if (!isRecording) void startRecording();
+              beginTransmission();
             }}
-            onPointerUp={stopRecording}
-            onPointerCancel={stopRecording}
-            onPointerLeave={stopRecording}
+            onMouseUp={endTransmission}
+            onMouseLeave={endTransmission}
+            onTouchStart={(event) => {
+              event.preventDefault();
+              beginTransmission();
+            }}
+            onTouchEnd={endTransmission}
+            onTouchCancel={endTransmission}
             onKeyDown={(event) => {
               if ((event.key === ' ' || event.key === 'Enter') && !isRecording) {
                 event.preventDefault();
-                void startRecording();
+                beginTransmission();
               }
             }}
             onKeyUp={(event) => {
               if (event.key === ' ' || event.key === 'Enter') {
                 event.preventDefault();
-                stopRecording();
+                endTransmission();
               }
             }}
             disabled={mutation.isPending}
