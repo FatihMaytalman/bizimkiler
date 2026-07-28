@@ -17,7 +17,7 @@ export default async function EchoTapPage({ params }: EchoTapPageProps) {
         <p className="text-sm uppercase tracking-[0.24em] text-turquoise-500">EchoTap</p>
         <h2 className="mt-2 font-display text-4xl text-cream-50">Family radio channel</h2>
         <p className="mt-3 text-warm-white/70">
-          Push-to-talk voice capture for quick check-ins, radio checks, and story
+          Radio-style voice capture for quick check-ins, radio checks, and story
           transmissions.
         </p>
       </div>

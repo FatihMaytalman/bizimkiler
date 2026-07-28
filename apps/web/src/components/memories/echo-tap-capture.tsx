@@ -136,9 +136,15 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
 
   async function startRecording(): Promise<void> {
     setError(null);
+    setRecordingFile(null);
+    setRecordedDurationMs(undefined);
+    setElapsedMs(0);
+    setIsRecording(true);
+    startedAtRef.current = Date.now();
 
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       setError('This browser cannot record audio here. Choose an audio file instead.');
+      setIsRecording(false);
       return;
     }
 
@@ -178,15 +184,13 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
 
       playTone(920, 80);
       recorder.start();
-      setRecordingFile(null);
-      setRecordedDurationMs(undefined);
-      setElapsedMs(0);
-      setIsRecording(true);
       intervalRef.current = window.setInterval(() => {
         if (startedAtRef.current) setElapsedMs(Date.now() - startedAtRef.current);
       }, 250);
     } catch {
       setError('Microphone access was blocked. Choose an audio file instead.');
+      setIsRecording(false);
+      stopTimer();
     }
   }
 
@@ -196,7 +200,7 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
     }
   }
 
-  function beginTransmission(): void {
+  function keyMicrophone(): void {
     if (pressActiveRef.current || mutation.isPending) {
       return;
     }
@@ -204,16 +208,24 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
     void startRecording();
   }
 
-  function endTransmission(): void {
+  function releaseMicrophone(): void {
     pressActiveRef.current = false;
     stopRecording();
+  }
+
+  function toggleTransmission(): void {
+    if (isRecording) {
+      releaseMicrophone();
+    } else {
+      keyMicrophone();
+    }
   }
 
   return (
     <Card>
       <CardTitle>EchoTap Radio</CardTitle>
       <CardDescription>
-        Press and hold to transmit. Release to end the family-net message.
+        Key the mic to transmit. End the transmission when the family-net message is done.
       </CardDescription>
 
       <form
@@ -269,38 +281,27 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
                 : 'mx-auto mt-5 flex min-h-32 min-w-32 rounded-full text-base'
             }
             type="button"
-            onMouseDown={(event) => {
-              event.preventDefault();
-              beginTransmission();
-            }}
-            onMouseUp={endTransmission}
-            onMouseLeave={endTransmission}
-            onTouchStart={(event) => {
-              event.preventDefault();
-              beginTransmission();
-            }}
-            onTouchEnd={endTransmission}
-            onTouchCancel={endTransmission}
+            onClick={toggleTransmission}
             onKeyDown={(event) => {
               if ((event.key === ' ' || event.key === 'Enter') && !isRecording) {
                 event.preventDefault();
-                beginTransmission();
+                keyMicrophone();
               }
             }}
             onKeyUp={(event) => {
               if (event.key === ' ' || event.key === 'Enter') {
                 event.preventDefault();
-                endTransmission();
+                releaseMicrophone();
               }
             }}
             disabled={mutation.isPending}
           >
-            {isRecording ? 'Release to end' : 'Hold to talk'}
+            {isRecording ? 'End transmission' : 'Key mic'}
           </Button>
           <p className="mt-4 text-center text-sm text-warm-white/60">
             {isRecording
-              ? 'Live mic is hot. Release the button to close the transmission.'
-              : 'Push-to-talk mode: hold the button like a radio handset.'}
+              ? 'Live mic is hot. Click again or release the key to close the transmission.'
+              : 'Radio mode: click to key the mic, then click again to release.'}
           </p>
         </div>
 
