@@ -6,6 +6,7 @@ import {
   MemoryReactionEntity,
   UserAccountEntity,
 } from '../../database/entities';
+import { AuthModule } from '../auth/auth.module';
 import { FamilyAccessModule } from '../family-access/family-access.module';
 import { MemoriesController } from './memories.controller';
 import { MemoriesService } from './memories.service';
@@ -18,6 +19,7 @@ import { MemoriesService } from './memories.service';
       MemoryReactionEntity,
       UserAccountEntity,
     ]),
+    AuthModule,
     FamilyAccessModule,
   ],
   controllers: [MemoriesController],
