@@ -15,9 +15,10 @@ export default async function EchoTapPage({ params }: EchoTapPageProps) {
     <div className="mx-auto max-w-xl space-y-6">
       <div>
         <p className="text-sm uppercase tracking-[0.24em] text-turquoise-500">EchoTap</p>
-        <h2 className="mt-2 font-display text-4xl text-cream-50">Record a family story</h2>
+        <h2 className="mt-2 font-display text-4xl text-cream-50">Family radio channel</h2>
         <p className="mt-3 text-warm-white/70">
-          Voice-first memory capture for relatives who would rather speak than type.
+          Push-to-talk voice capture for quick check-ins, radio checks, and story
+          transmissions.
         </p>
       </div>
       <EchoTapCapture familyId={id} />

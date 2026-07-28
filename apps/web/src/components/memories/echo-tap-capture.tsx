@@ -48,7 +48,10 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef<number | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
+  const [channel, setChannel] = useState('CH-01 Family Net');
+  const [callSign, setCallSign] = useState('FAMILY-1');
   const [caption, setCaption] = useState('');
   const [memoryDate, setMemoryDate] = useState('');
   const [recordingFile, setRecordingFile] = useState<File | null>(null);
@@ -60,11 +63,11 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
 
   const mutation = useMutation({
     mutationFn: () => {
-      if (!recordingFile) throw new Error('Record or choose an audio clip first.');
+      if (!recordingFile) throw new Error('Transmit or load an audio clip first.');
       return uploadVoiceMemory(
         familyId,
         recordingFile,
-        caption || undefined,
+        buildTransmissionCaption(),
         memoryDate || undefined,
         recordedDurationMs,
       );
@@ -90,8 +93,11 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
   useEffect(() => {
     return () => {
       if (intervalRef.current !== null) window.clearInterval(intervalRef.current);
-      recorderRef.current?.stop();
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+        recorderRef.current.stop();
+      }
       streamRef.current?.getTracks().forEach((track) => track.stop());
+      void audioContextRef.current?.close();
     };
   }, []);
 
@@ -99,6 +105,31 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
     if (intervalRef.current !== null) {
       window.clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+  }
+
+  function buildTransmissionCaption(): string {
+    const message = caption.trim() || 'Radio check';
+    return `${callSign.trim() || 'FAMILY-1'} ${channel.trim() || 'CH-01'}: ${message}`;
+  }
+
+  function playTone(frequency: number, durationMs: number): void {
+    try {
+      const context = audioContextRef.current ?? new AudioContext();
+      audioContextRef.current = context;
+
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'square';
+      gain.gain.setValueAtTime(0.04, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + durationMs / 1000);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + durationMs / 1000);
+    } catch {
+      // Audio cues are progressive enhancement; recording must still work without them.
     }
   }
 
@@ -128,6 +159,7 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
 
       recorder.onstop = () => {
         stopTimer();
+        playTone(520, 90);
         const finalDurationMs = startedAtRef.current ? Date.now() - startedAtRef.current : 0;
         const finalMimeType = recorder.mimeType || mimeType || 'audio/webm';
         const blob = new Blob(chunksRef.current, { type: finalMimeType });
@@ -143,6 +175,7 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
         recorderRef.current = null;
       };
 
+      playTone(920, 80);
       recorder.start();
       setRecordingFile(null);
       setRecordedDurationMs(undefined);
@@ -157,14 +190,16 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
   }
 
   function stopRecording(): void {
-    recorderRef.current?.stop();
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      recorderRef.current.stop();
+    }
   }
 
   return (
     <Card>
-      <CardTitle>EchoTap</CardTitle>
+      <CardTitle>EchoTap Radio</CardTitle>
       <CardDescription>
-        Tap once to record a family story. Add context later, or let the voice carry it.
+        Press and hold to transmit. Release to end the family-net message.
       </CardDescription>
 
       <form
@@ -175,33 +210,92 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
           mutation.mutate();
         }}
       >
-        <div className="rounded-3xl border border-turquoise-500/20 bg-turquoise-500/10 p-5 text-center">
-          <p className="text-xs uppercase tracking-[0.24em] text-turquoise-500">
-            {isRecording ? 'Recording' : recordingFile ? 'Ready to save' : 'Ready'}
+        <div className="rounded-3xl border border-turquoise-500/30 bg-[radial-gradient(circle_at_top,_rgba(46,196,182,0.22),_rgba(255,255,255,0.04)_52%,_rgba(13,27,42,0.7))] p-5 shadow-card">
+          <div className="flex items-center justify-between gap-3 text-xs uppercase tracking-[0.2em]">
+            <span className="text-turquoise-500">{channel}</span>
+            <span
+              className={
+                isRecording
+                  ? 'rounded-full bg-red-500/20 px-3 py-1 text-red-300'
+                  : recordingFile
+                    ? 'rounded-full bg-turquoise-500/20 px-3 py-1 text-turquoise-300'
+                    : 'rounded-full bg-white/10 px-3 py-1 text-warm-white/60'
+              }
+            >
+              {isRecording ? 'TX live' : recordingFile ? 'RX captured' : 'Standby'}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-4 font-mono text-sm text-turquoise-200 sm:grid-cols-3">
+            <div>
+              <p className="text-warm-white/40">CALLSIGN</p>
+              <p>{callSign || 'FAMILY-1'}</p>
+            </div>
+            <div>
+              <p className="text-warm-white/40">SQUELCH</p>
+              <p>FAMILY ONLY</p>
+            </div>
+            <div>
+              <p className="text-warm-white/40">SIGNAL</p>
+              <p>{isRecording ? '|||||' : recordingFile ? '||||' : '|||'}</p>
+            </div>
+          </div>
+
+          <p className="mt-6 text-center font-mono text-5xl text-cream-50">
+            {formatElapsed(elapsedMs)}
           </p>
-          <p className="mt-3 font-mono text-4xl text-cream-50">{formatElapsed(elapsedMs)}</p>
+          <p className="mt-2 text-center text-xs uppercase tracking-[0.3em] text-warm-white/50">
+            {isRecording ? 'Transmitting' : recordingFile ? 'Transmission ready' : 'Channel open'}
+          </p>
+
           <Button
-            className="mt-5 min-h-28 min-w-28 rounded-full text-base"
+            className={
+              isRecording
+                ? 'mx-auto mt-5 flex min-h-32 min-w-32 rounded-full bg-red-500 text-white hover:bg-red-500/90'
+                : 'mx-auto mt-5 flex min-h-32 min-w-32 rounded-full text-base'
+            }
             type="button"
-            onClick={() => {
-              if (isRecording) {
-                stopRecording();
-              } else {
+            onPointerDown={(event) => {
+              event.preventDefault();
+              if (!isRecording) void startRecording();
+            }}
+            onPointerUp={stopRecording}
+            onPointerCancel={stopRecording}
+            onPointerLeave={stopRecording}
+            onKeyDown={(event) => {
+              if ((event.key === ' ' || event.key === 'Enter') && !isRecording) {
+                event.preventDefault();
                 void startRecording();
+              }
+            }}
+            onKeyUp={(event) => {
+              if (event.key === ' ' || event.key === 'Enter') {
+                event.preventDefault();
+                stopRecording();
               }
             }}
             disabled={mutation.isPending}
           >
-            {isRecording ? 'Stop' : 'Tap to record'}
+            {isRecording ? 'Release to end' : 'Hold to talk'}
           </Button>
+          <p className="mt-4 text-center text-sm text-warm-white/60">
+            {isRecording
+              ? 'Live mic is hot. Release the button to close the transmission.'
+              : 'Push-to-talk mode: hold the button like a radio handset.'}
+          </p>
         </div>
 
         {previewUrl ? (
-          <audio src={previewUrl} controls className="w-full" preload="metadata" />
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="mb-3 font-mono text-xs uppercase tracking-[0.24em] text-turquoise-500">
+              Received transmission preview
+            </p>
+            <audio src={previewUrl} controls className="w-full" preload="metadata" />
+          </div>
         ) : null}
 
         <label className="block space-y-2 text-sm text-warm-white/70">
-          <span>Or choose an existing audio clip</span>
+          <span>Load recorded transmission</span>
           <input
             type="file"
             accept="audio/webm,audio/mp4,audio/mpeg,audio/ogg,audio/wav,audio/aac"
@@ -215,11 +309,32 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
           />
         </label>
 
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block space-y-2 text-sm text-warm-white/70">
+            <span>Channel</span>
+            <input
+              className={inputClass}
+              maxLength={32}
+              value={channel}
+              onChange={(event) => setChannel(event.target.value)}
+            />
+          </label>
+          <label className="block space-y-2 text-sm text-warm-white/70">
+            <span>Callsign</span>
+            <input
+              className={inputClass}
+              maxLength={16}
+              value={callSign}
+              onChange={(event) => setCallSign(event.target.value.toUpperCase())}
+            />
+          </label>
+        </div>
+
         <textarea
           className={inputClass}
           rows={3}
           maxLength={280}
-          placeholder="Optional caption, name, or place"
+          placeholder="Transmission note, location, or radio check"
           value={caption}
           onChange={(event) => setCaption(event.target.value)}
         />
@@ -233,7 +348,7 @@ export function EchoTapCapture({ familyId }: EchoTapCaptureProps) {
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
 
         <Button type="submit" disabled={mutation.isPending || isRecording || !recordingFile}>
-          {mutation.isPending ? 'Saving…' : 'Save voice memory'}
+          {mutation.isPending ? 'Logging…' : 'Log transmission'}
         </Button>
       </form>
     </Card>

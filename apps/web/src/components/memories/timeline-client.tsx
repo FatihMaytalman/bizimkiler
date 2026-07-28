@@ -40,7 +40,7 @@ export function TimelineClient({ familyId }: TimelineClientProps) {
       <Card>
         <CardTitle>No memories yet</CardTitle>
         <CardDescription>
-          Add the first photo or EchoTap voice memory for this family.
+          Add the first photo or open the EchoTap family radio channel.
         </CardDescription>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href={`/family/${familyId}/echo-tap`}>
@@ -65,7 +65,7 @@ export function TimelineClient({ familyId }: TimelineClientProps) {
           )}
           <div className="p-4 space-y-3">
             <p className="text-xs uppercase tracking-[0.2em] text-warm-white/40">
-              {memory.memoryKind === 'voice' ? 'EchoTap voice' : 'Photo memory'}
+              {memory.memoryKind === 'voice' ? 'EchoTap transmission' : 'Photo memory'}
             </p>
             <p className="text-cream-50">{memory.caption}</p>
             <p className="text-xs text-warm-white/50">
