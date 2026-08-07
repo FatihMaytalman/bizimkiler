@@ -16,7 +16,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AuthenticatedUser } from '../auth/auth.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateMemoryDto, MemoriesService } from './memories.service';
+import { CreateMemoryDto, CreateVoiceMemoryDto, MemoriesService } from './memories.service';
 
 @Controller('memories')
 export class MemoriesController {
@@ -57,6 +57,55 @@ export class MemoriesController {
     const { stream } = await this.memoriesService.getPhotoStream(id, user.userId);
     reply.header('Cache-Control', 'private, max-age=3600');
     return reply.send(stream);
+  }
+
+  @Get(':id/audio')
+  @UseGuards(JwtAuthGuard)
+  async getAudio(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() reply: FastifyReply,
+  ) {
+    const { stream, contentType } = await this.memoriesService.getAudioStream(id, user.userId);
+    reply.header('Cache-Control', 'private, max-age=3600');
+    reply.header('Content-Type', contentType);
+    return reply.send(stream);
+  }
+
+  @Post('voice')
+  @HttpCode(201)
+  @UseGuards(JwtAuthGuard)
+  async createVoiceMemory(@Req() req: FastifyRequest, @CurrentUser() user: AuthenticatedUser) {
+    const data = await req.file();
+    if (!data) {
+      throw new BadRequestException('Audio file is required.');
+    }
+
+    const fields = data.fields as Record<string, { value?: string } | undefined>;
+    const familyId = fields.familyId?.value;
+    const caption = fields.caption?.value;
+    const memoryDate = fields.memoryDate?.value;
+    const durationMs = fields.durationMs?.value;
+
+    if (!familyId) {
+      throw new BadRequestException('familyId is required.');
+    }
+
+    const buffer = await data.toBuffer();
+    const dto: CreateVoiceMemoryDto = {
+      familyId,
+      caption: caption || undefined,
+      memoryDate: memoryDate || undefined,
+      durationMs: durationMs ? Number(durationMs) : undefined,
+    };
+
+    return this.memoriesService.createVoiceMemory(
+      dto,
+      user.userId,
+      buffer,
+      data.filename,
+      data.mimetype,
+    );
   }
 
   @Post()

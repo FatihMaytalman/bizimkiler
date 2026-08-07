@@ -14,10 +14,11 @@ export {
   MEMBER_RELATIONSHIPS,
   MemoryCommentEntity,
   MemoryEntity,
+  MemoryKind,
   MemoryReactionEntity,
   RelationshipEdgeEntity,
   RelationshipEdgeType,
   type MemberRelationship,
 } from './social.entity';
 export { PersonEntity, PersonNameEntity, PersonVisibility } from './person.entity';
-export { UserAccountEntity } from './user-account.entity';
+export { UserAccountEntity, UserAccountRole } from './user-account.entity';

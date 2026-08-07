@@ -7,11 +7,13 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import type { FastifyRequest } from 'fastify';
 import type { AuthenticatedUser } from './auth.service';
+import { UserAccountRole } from '../../database/entities';
 
 interface JwtPayload {
   sub: string;
   email: string;
   displayName: string;
+  role?: UserAccountRole;
 }
 
 export type RequestWithUser = FastifyRequest & { user?: AuthenticatedUser };
@@ -36,6 +38,7 @@ export class JwtAuthGuard implements CanActivate {
         userId: payload.sub,
         email: payload.email,
         displayName: payload.displayName,
+        role: payload.role ?? UserAccountRole.MEMBER,
       };
       return true;
     } catch {

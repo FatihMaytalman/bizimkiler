@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { buildPostgresTypeOrmOptions } from './database/database-url';
 import { entities, migrations } from './database/data-source';
 import { AiModule } from './modules/ai/ai.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -21,19 +22,13 @@ import { SocialModule } from './modules/social/social.module';
       envFilePath: ['.env', '.env.local'],
     }),
     TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres' as const,
-        host: config.get<string>('AOM_DB_HOST', 'localhost'),
-        port: config.get<number>('AOM_DB_PORT', 5432),
-        username: config.get<string>('AOM_DB_USERNAME', 'aomlegacy'),
-        password: config.get<string>('AOM_DB_PASSWORD', 'aomlegacy'),
-        database: config.get<string>('AOM_DB_NAME', 'aomlegacy'),
+      useFactory: () => ({
+        ...buildPostgresTypeOrmOptions(),
         entities,
         migrations,
         migrationsRun: true,
         synchronize: false,
-        logging: config.get<string>('NODE_ENV') !== 'production',
+        logging: process.env.NODE_ENV !== 'production',
       }),
     }),
     HealthModule,

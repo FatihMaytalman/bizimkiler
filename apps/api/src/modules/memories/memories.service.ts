@@ -19,6 +19,7 @@ import { Repository, In } from 'typeorm';
 import {
   MemoryCommentEntity,
   MemoryEntity,
+  MemoryKind,
   MemoryReactionEntity,
   UserAccountEntity,
 } from '../../database/entities';
@@ -38,15 +39,34 @@ export class CreateMemoryDto {
   memoryDate?: string;
 }
 
+export class CreateVoiceMemoryDto {
+  @IsUUID()
+  familyId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(280)
+  caption?: string;
+
+  @IsOptional()
+  @IsDateString()
+  memoryDate?: string;
+
+  durationMs?: number;
+}
+
 export interface MemorySummary {
   id: string;
   familyId: string;
   authorUserId: string;
   authorName: string;
+  memoryKind: MemoryKind;
   caption: string;
   memoryDate?: string;
   createdAt: string;
-  photoUrl: string;
+  photoUrl?: string;
+  audioUrl?: string;
+  durationMs?: number;
   reactionCount: number;
   userReacted: boolean;
   commentCount: number;
@@ -61,7 +81,8 @@ export interface MemoryCommentSummary {
   createdAt: string;
 }
 
-const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const ALLOWED_AUDIO_EXT = new Set(['.webm', '.m4a', '.mp3', '.ogg', '.wav', '.aac']);
 
 @Injectable()
 export class MemoriesService {
@@ -121,7 +142,7 @@ export class MemoriesService {
     await this.familyAccess.assertMembership(dto.familyId, userId);
 
     const ext = extname(originalFilename).toLowerCase();
-    if (!ALLOWED_EXT.has(ext)) {
+    if (!ALLOWED_IMAGE_EXT.has(ext)) {
       throw new BadRequestException('Unsupported image type. Use JPG, PNG, or WebP.');
     }
 
@@ -138,8 +159,60 @@ export class MemoriesService {
       this.memoryRepository.create({
         familyId: dto.familyId,
         authorUserId: userId,
+        memoryKind: MemoryKind.PHOTO,
         photoPath,
+        audioPath: null,
+        durationMs: null,
         caption: dto.caption.trim(),
+        memoryDate: dto.memoryDate ?? null,
+      }),
+    );
+
+    return this.enrichMemory(memory, userId);
+  }
+
+  async createVoiceMemory(
+    dto: CreateVoiceMemoryDto,
+    userId: string,
+    fileBuffer: Buffer,
+    originalFilename: string,
+    mimeType: string,
+  ): Promise<MemorySummary> {
+    await this.familyAccess.assertMembership(dto.familyId, userId);
+
+    const ext = extname(originalFilename).toLowerCase();
+    if (!ALLOWED_AUDIO_EXT.has(ext)) {
+      throw new BadRequestException('Unsupported audio type. Use WebM, M4A, MP3, OGG, WAV, or AAC.');
+    }
+
+    if (!mimeType.startsWith('audio/')) {
+      throw new BadRequestException('File must be an audio recording.');
+    }
+
+    const caption = dto.caption?.trim() || 'Voice memory';
+    if (caption.length > 280) {
+      throw new BadRequestException('Caption must be 280 characters or fewer.');
+    }
+
+    const durationMs =
+      dto.durationMs !== undefined && Number.isFinite(dto.durationMs) && dto.durationMs > 0
+        ? Math.round(dto.durationMs)
+        : null;
+
+    const audioPath = `${dto.familyId}/${randomUUID()}${ext}`;
+    const absolutePath = join(this.uploadsDir, audioPath);
+    mkdirSync(join(this.uploadsDir, dto.familyId), { recursive: true });
+    writeFileSync(absolutePath, fileBuffer);
+
+    const memory = await this.memoryRepository.save(
+      this.memoryRepository.create({
+        familyId: dto.familyId,
+        authorUserId: userId,
+        memoryKind: MemoryKind.VOICE,
+        photoPath: null,
+        audioPath,
+        durationMs,
+        caption,
         memoryDate: dto.memoryDate ?? null,
       }),
     );
@@ -154,12 +227,39 @@ export class MemoriesService {
     }
     await this.familyAccess.assertMembership(memory.familyId, userId);
 
+    if (memory.memoryKind !== MemoryKind.PHOTO || !memory.photoPath) {
+      throw new NotFoundException('Photo file not found.');
+    }
+
     const absolutePath = join(this.uploadsDir, memory.photoPath);
     if (!existsSync(absolutePath)) {
       throw new NotFoundException('Photo file not found.');
     }
 
     return { stream: createReadStream(absolutePath), memory };
+  }
+
+  async getAudioStream(memoryId: string, userId: string) {
+    const memory = await this.memoryRepository.findOne({ where: { id: memoryId } });
+    if (!memory) {
+      throw new NotFoundException('Memory not found.');
+    }
+    await this.familyAccess.assertMembership(memory.familyId, userId);
+
+    if (memory.memoryKind !== MemoryKind.VOICE || !memory.audioPath) {
+      throw new NotFoundException('Audio file not found.');
+    }
+
+    const absolutePath = join(this.uploadsDir, memory.audioPath);
+    if (!existsSync(absolutePath)) {
+      throw new NotFoundException('Audio file not found.');
+    }
+
+    return {
+      stream: createReadStream(absolutePath),
+      memory,
+      contentType: this.audioContentType(memory.audioPath),
+    };
   }
 
   async listComments(memoryId: string, userId: string): Promise<MemoryCommentSummary[]> {
@@ -253,13 +353,28 @@ export class MemoriesService {
       familyId: memory.familyId,
       authorUserId: memory.authorUserId,
       authorName: author?.displayName ?? 'Member',
+      memoryKind: memory.memoryKind,
       caption: memory.caption,
       memoryDate: memory.memoryDate ?? undefined,
       createdAt: memory.createdAt.toISOString(),
-      photoUrl: `/api/memories/${memory.id}/photo`,
+      photoUrl:
+        memory.memoryKind === MemoryKind.PHOTO ? `/api/memories/${memory.id}/photo` : undefined,
+      audioUrl:
+        memory.memoryKind === MemoryKind.VOICE ? `/api/memories/${memory.id}/audio` : undefined,
+      durationMs: memory.durationMs ?? undefined,
       reactionCount,
       userReacted,
       commentCount,
     };
+  }
+
+  private audioContentType(audioPath: string): string {
+    const ext = extname(audioPath).toLowerCase();
+    if (ext === '.mp3') return 'audio/mpeg';
+    if (ext === '.m4a') return 'audio/mp4';
+    if (ext === '.ogg') return 'audio/ogg';
+    if (ext === '.wav') return 'audio/wav';
+    if (ext === '.aac') return 'audio/aac';
+    return 'audio/webm';
   }
 }

@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   FamilyInviteEntity,
   FamilyMembershipEntity,
   UserAccountEntity,
 } from '../../database/entities';
+import { AuthModule } from '../auth/auth.module';
 import { FamilyAccessModule } from '../family-access/family-access.module';
 import { InvitesController } from './invites.controller';
 import { InvitesService } from './invites.service';
@@ -16,6 +17,7 @@ import { InvitesService } from './invites.service';
       FamilyMembershipEntity,
       UserAccountEntity,
     ]),
+    forwardRef(() => AuthModule),
     FamilyAccessModule,
   ],
   controllers: [InvitesController],

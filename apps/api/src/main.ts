@@ -3,16 +3,29 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import multipart from '@fastify/multipart';
 import { AppModule } from './app.module';
+import { isCorsOriginAllowed, parseCorsOrigins } from './config/cors';
 
 async function bootstrap(): Promise<void> {
+  const allowedOrigins = parseCorsOrigins();
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
-    { cors: true },
   );
 
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (!origin || isCorsOriginAllowed(origin, allowedOrigins)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error('Not allowed by CORS'), false);
+    },
+    credentials: true,
+  });
+
   await app.register(multipart, {
-    limits: { fileSize: 10 * 1024 * 1024 },
+    limits: { fileSize: 25 * 1024 * 1024 },
   });
 
   app.setGlobalPrefix('api');

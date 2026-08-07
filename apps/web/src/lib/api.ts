@@ -1,8 +1,20 @@
 import type { FamilySummary, PersonSummary, PersonVisibility } from '@aomlegacy/shared';
 
-const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ??
-  'http://localhost:8080/api';
+function resolveApiBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  if (raw) {
+    return raw.replace(/\/$/, '');
+  }
+
+  // Local `next build` / typecheck without env vars; production deploys must set NEXT_PUBLIC_API_BASE_URL.
+  return 'http://localhost:3001/api';
+}
+
+export function getApiBaseUrl(): string {
+  return resolveApiBaseUrl();
+}
+
+const apiBaseUrl = resolveApiBaseUrl();
 
 export interface HealthResponse {
   status: string;
@@ -32,6 +44,7 @@ export interface AuthUser {
   userId: string;
   email: string;
   displayName: string;
+  role?: 'member' | 'superadmin';
 }
 
 export interface AuthSession {
@@ -185,10 +198,13 @@ export interface MemorySummary {
   familyId: string;
   authorUserId: string;
   authorName: string;
+  memoryKind: 'photo' | 'voice';
   caption: string;
   memoryDate?: string;
   createdAt: string;
-  photoUrl: string;
+  photoUrl?: string;
+  audioUrl?: string;
+  durationMs?: number;
   reactionCount: number;
   userReacted: boolean;
   commentCount: number;
@@ -235,6 +251,10 @@ export function memoryPhotoUrl(memoryId: string): string {
   return `${apiBaseUrl}/memories/${memoryId}/photo`;
 }
 
+export function memoryAudioUrl(memoryId: string): string {
+  return `${apiBaseUrl}/memories/${memoryId}/audio`;
+}
+
 export async function fetchMemories(familyId: string): Promise<MemorySummary[]> {
   return request<MemorySummary[]>(
     `/memories?familyId=${encodeURIComponent(familyId)}`,
@@ -266,6 +286,33 @@ export async function uploadMemory(
 
   if (!response.ok) {
     throw new Error(`Upload failed with status ${response.status}`);
+  }
+
+  return response.json() as Promise<MemorySummary>;
+}
+
+export async function uploadVoiceMemory(
+  familyId: string,
+  file: File,
+  caption?: string,
+  memoryDate?: string,
+  durationMs?: number,
+): Promise<MemorySummary> {
+  const form = new FormData();
+  form.append('familyId', familyId);
+  form.append('audio', file);
+  if (caption?.trim()) form.append('caption', caption.trim());
+  if (memoryDate) form.append('memoryDate', memoryDate);
+  if (durationMs && Number.isFinite(durationMs)) form.append('durationMs', String(durationMs));
+
+  const response = await fetch(`${apiBaseUrl}/memories/voice`, {
+    method: 'POST',
+    headers: authHeader(),
+    body: form,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Voice upload failed with status ${response.status}`);
   }
 
   return response.json() as Promise<MemorySummary>;

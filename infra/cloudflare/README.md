@@ -7,7 +7,7 @@ The public landing page and Family Tree web app deploy to **Cloudflare Workers**
 | Surface | Host | Notes |
 | --- | --- | --- |
 | Landing page + web app | Cloudflare Workers (`aomlegacy-web`) | `apps/web` via OpenNext |
-| NestJS API + PostgreSQL | Self-hosted Docker or future managed host | Not on Workers (needs Postgres) |
+| NestJS API + PostgreSQL | Railway or self-hosted Docker | See `infra/railway/README.md` for managed API deploy |
 | Immich media library | Self-hosted Docker | Reachable at `/photos/` behind nginx |
 | Claude AI | API server | Set `ANTHROPIC_API_KEY` on the API host |
 
@@ -19,7 +19,7 @@ The public landing page and Family Tree web app deploy to **Cloudflare Workers**
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
 4. Add GitHub repository variables:
-   - `NEXT_PUBLIC_API_BASE_URL` — e.g. `https://api.aomlegacy.com/api` or your tunnel URL
+   - `NEXT_PUBLIC_API_BASE_URL` — e.g. `https://bizimkiler-api.up.railway.app/api` (Railway) or `https://api.aomlegacy.com/api` (self-hosted tunnel)
    - `NEXT_PUBLIC_SITE_URL` — `https://aomlegacy.com`
 5. Connect the custom domain in the Cloudflare dashboard after the first deploy.
 

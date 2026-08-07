@@ -32,6 +32,11 @@ export type MemberRelationship = (typeof MEMBER_RELATIONSHIPS)[number];
 
 export const INVITE_RELATIONSHIPS = MEMBER_RELATIONSHIPS.filter((r) => r !== 'self');
 
+export enum MemoryKind {
+  PHOTO = 'photo',
+  VOICE = 'voice',
+}
+
 @Entity({ name: 'family_invite' })
 @Unique(['familyId', 'email'])
 @Unique(['inviteToken'])
@@ -88,8 +93,17 @@ export class MemoryEntity {
   @JoinColumn({ name: 'author_user_id' })
   author!: UserAccountEntity;
 
-  @Column({ name: 'photo_path', type: 'text' })
-  photoPath!: string;
+  @Column({ name: 'memory_kind', type: 'text', default: MemoryKind.PHOTO })
+  memoryKind!: MemoryKind;
+
+  @Column({ name: 'photo_path', type: 'text', nullable: true })
+  photoPath!: string | null;
+
+  @Column({ name: 'audio_path', type: 'text', nullable: true })
+  audioPath!: string | null;
+
+  @Column({ name: 'duration_ms', type: 'integer', nullable: true })
+  durationMs!: number | null;
 
   @Column({ type: 'text' })
   caption!: string;
