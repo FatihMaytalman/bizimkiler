@@ -1,8 +1,20 @@
 import type { FamilySummary, PersonSummary, PersonVisibility } from '@aomlegacy/shared';
 
-const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ??
-  'http://localhost:8080/api';
+function resolveApiBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  if (raw) {
+    return raw.replace(/\/$/, '');
+  }
+
+  // Local `next build` without env vars; production deploys must set NEXT_PUBLIC_API_BASE_URL.
+  return 'http://localhost:3001/api';
+}
+
+export function getApiBaseUrl(): string {
+  return resolveApiBaseUrl();
+}
+
+const apiBaseUrl = resolveApiBaseUrl();
 
 export interface HealthResponse {
   status: string;
@@ -32,6 +44,7 @@ export interface AuthUser {
   userId: string;
   email: string;
   displayName: string;
+  role?: 'member' | 'superadmin';
 }
 
 export interface AuthSession {

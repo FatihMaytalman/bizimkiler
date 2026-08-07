@@ -120,3 +120,7 @@ npm run dev:api
 npm run typecheck -w apps/api
 npm run build -w apps/api
 ```
+
+## Railway deployment
+
+The API deploys to Railway from the monorepo root using `railway.json`. See `infra/railway/README.md` for Postgres linking, CORS, superadmin bootstrap, and web app `NEXT_PUBLIC_API_BASE_URL` setup.

@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { config as loadEnv } from 'dotenv';
 import { DataSource } from 'typeorm';
+import { buildPostgresTypeOrmOptions } from './database-url';
 import {
   AuditEventEntity,
   DeduplicationCandidateEntity,
@@ -23,6 +24,7 @@ import { MediaDedupProvenance1730000001000 } from './migrations/1730000001000-Me
 import { ImmichSyncAndDedup1730000002000 } from './migrations/1730000002000-ImmichSyncAndDedup';
 import { SocialMemoriesRelationships1730000003000 } from './migrations/1730000003000-SocialMemoriesRelationships';
 import { EchoTapVoiceMemories1730000004000 } from './migrations/1730000004000-EchoTapVoiceMemories';
+import { UserAccountRole1730000005000 } from './migrations/1730000005000-UserAccountRole';
 
 loadEnv({ path: ['.env', '.env.local'] });
 
@@ -50,15 +52,11 @@ export const migrations = [
   ImmichSyncAndDedup1730000002000,
   SocialMemoriesRelationships1730000003000,
   EchoTapVoiceMemories1730000004000,
+  UserAccountRole1730000005000,
 ];
 
 export const AppDataSource = new DataSource({
-  type: 'postgres',
-  host: process.env.AOM_DB_HOST ?? 'localhost',
-  port: Number(process.env.AOM_DB_PORT ?? 5432),
-  username: process.env.AOM_DB_USERNAME ?? 'aomlegacy',
-  password: process.env.AOM_DB_PASSWORD ?? 'aomlegacy',
-  database: process.env.AOM_DB_NAME ?? 'aomlegacy',
+  ...buildPostgresTypeOrmOptions(),
   entities,
   migrations,
   synchronize: false,
