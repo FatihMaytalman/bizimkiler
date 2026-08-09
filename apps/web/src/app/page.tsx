@@ -39,7 +39,7 @@ export default async function LandingPage() {
           <Link href="/families">
             <Button variant="secondary">Choose a family</Button>
           </Link>
-          <Link href="/photos/">
+          <Link href="/photos">
             <Button variant="ghost">Open media library</Button>
           </Link>
         </div>

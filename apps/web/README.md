@@ -45,10 +45,11 @@ The app listens on port `3000` by default.
 When running through the Docker Compose stack:
 
 - The public landing page is available at `http://localhost:8080/`.
-- Family Tree web routes are proxied at `/`, `/login`, `/families`, and `/family/*`.
-- Immich media library is proxied at `/photos/`.
+- Family Tree web routes are proxied at `/`, `/login`, `/families`, `/photos`, and `/family/*`.
+- Immich (self-hosted media) is also proxied at `/photos/` by nginx; that takes precedence over
+  the Next.js `/photos` entry page when the reverse proxy is in front.
 - The API is available at `/api/*`.
-- The full Next.js app is also exposed directly on port `3000`.
+- The full Next.js app is also exposed directly on port `3000` (no Immich proxy there).
 
 ## App routes
 
@@ -56,12 +57,13 @@ When running through the Docker Compose stack:
 /                      public landing page
 /login                 authentication shell
 /families              family switcher
+/photos                public media entry → sign-in / choose a family
 /family/[id]           dashboard
 /family/[id]/timeline  family timeline
 /family/[id]/people    people directory
 /family/[id]/people/[personId]
 /family/[id]/tree      interactive tree
-/family/[id]/media     media library
+/family/[id]/media     media library (auth + family required)
 /family/[id]/review    dedup/faces/OCR/AI review queue
 /family/[id]/settings  roles, backups, export, privacy
 ```
