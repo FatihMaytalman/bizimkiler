@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { OfflineWriteNotice } from '@/components/offline/offline-write-notice';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { uploadMemory } from '@/lib/api';
 
 const inputClass =
@@ -16,6 +18,7 @@ interface UploadFormProps {
 
 export function UploadForm({ familyId }: UploadFormProps) {
   const router = useRouter();
+  const online = useOnlineStatus();
   const [caption, setCaption] = useState('');
   const [memoryDate, setMemoryDate] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -48,6 +51,7 @@ export function UploadForm({ familyId }: UploadFormProps) {
           type="file"
           accept="image/jpeg,image/png,image/webp"
           className={inputClass}
+          disabled={!online}
           onChange={(event) => setFile(event.target.files?.[0] ?? null)}
         />
         <textarea
@@ -56,6 +60,7 @@ export function UploadForm({ familyId }: UploadFormProps) {
           maxLength={280}
           placeholder="Caption (max 280 characters)"
           value={caption}
+          disabled={!online}
           onChange={(event) => setCaption(event.target.value)}
           required
         />
@@ -63,10 +68,15 @@ export function UploadForm({ familyId }: UploadFormProps) {
           type="date"
           className={inputClass}
           value={memoryDate}
+          disabled={!online}
           onChange={(event) => setMemoryDate(event.target.value)}
         />
+        <OfflineWriteNotice action="uploading a memory" />
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
-        <Button type="submit" disabled={mutation.isPending || !file || caption.trim().length < 1}>
+        <Button
+          type="submit"
+          disabled={!online || mutation.isPending || !file || caption.trim().length < 1}
+        >
           {mutation.isPending ? 'Uploading…' : 'Save memory'}
         </Button>
       </form>
