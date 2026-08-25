@@ -66,6 +66,16 @@ When running through the Docker Compose stack:
 /family/[id]/settings  roles, backups, export, privacy
 ```
 
+## Offline capability
+
+The web app supports **read-while-offline** for previously loaded family data:
+
+- TanStack Query cache is persisted to `localStorage` (up to 7 days).
+- Memory photos viewed online are stored in the Cache API for offline display.
+- A banner appears when the browser reports offline; writes (upload, create, invite, react) are disabled until reconnect.
+
+Cold-start offline (never visited while online) still requires a network connection.
+
 ## Design foundation
 
 The design system follows the premium heritage identity in `docs/family-tree/master-plan.md`:

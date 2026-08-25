@@ -5,13 +5,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { OfflineWriteNotice } from '@/components/offline/offline-write-notice';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 
 const inputClass =
   'w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-cream-50 placeholder:text-warm-white/40 focus:border-gold-500/60 focus:outline-none';
 
 export default function LoginPage() {
   const router = useRouter();
+  const online = useOnlineStatus();
   const { login, register, user, logout } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -69,6 +72,7 @@ export default function LoginPage() {
                 className={inputClass}
                 placeholder="you@example.com"
                 value={email}
+                disabled={!online}
                 onChange={(event) => setEmail(event.target.value)}
               />
               {mode === 'register' ? (
@@ -78,6 +82,7 @@ export default function LoginPage() {
                   className={inputClass}
                   placeholder="Your name"
                   value={displayName}
+                  disabled={!online}
                   onChange={(event) => setDisplayName(event.target.value)}
                 />
               ) : null}
@@ -88,9 +93,13 @@ export default function LoginPage() {
                 className={inputClass}
                 placeholder={mode === 'register' ? 'At least 8 characters' : 'Password'}
                 value={password}
+                disabled={!online}
                 onChange={(event) => setPassword(event.target.value)}
               />
-              <Button type="submit" disabled={pending}>
+              <OfflineWriteNotice
+                action={mode === 'login' ? 'signing in' : 'creating an account'}
+              />
+              <Button type="submit" disabled={!online || pending}>
                 {pending
                   ? 'Please wait…'
                   : mode === 'login'

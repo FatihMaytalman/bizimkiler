@@ -5,12 +5,15 @@ import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { OfflineWriteNotice } from '@/components/offline/offline-write-notice';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { createFamily, fetchFamilies } from '@/lib/api';
 
 export function FamiliesManager() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const online = useOnlineStatus();
   const [name, setName] = useState('');
 
   const familiesQuery = useQuery({
@@ -45,47 +48,55 @@ export function FamiliesManager() {
           </div>
         </Card>
       ) : (
-      <Card>
-        <CardTitle>Create a family workspace</CardTitle>
-        <CardDescription>
-          Each workspace is a private space for a family&apos;s people, media, and history.
-        </CardDescription>
-        <form
-          className="mt-5 flex flex-col gap-3 sm:flex-row"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (trimmed.length >= 2) {
-              createMutation.mutate(trimmed);
-            }
-          }}
-        >
-          <input
-            aria-label="Family name"
-            className="flex-1 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-cream-50 placeholder:text-warm-white/40 focus:border-gold-500/60 focus:outline-none"
-            placeholder="e.g. Maytalman Family Archive"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-          <Button type="submit" disabled={trimmed.length < 2 || createMutation.isPending}>
-            {createMutation.isPending ? 'Creating…' : 'Create family'}
-          </Button>
-        </form>
-        {createMutation.isError ? (
-          <p className="mt-3 text-sm text-red-300">
-            {(createMutation.error as Error).message}
-          </p>
-        ) : null}
-      </Card>
+        <Card>
+          <CardTitle>Create a family workspace</CardTitle>
+          <CardDescription>
+            Each workspace is a private space for a family&apos;s people, media, and history.
+          </CardDescription>
+          <form
+            className="mt-5 flex flex-col gap-3 sm:flex-row"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (trimmed.length >= 2) {
+                createMutation.mutate(trimmed);
+              }
+            }}
+          >
+            <input
+              aria-label="Family name"
+              className="flex-1 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-cream-50 placeholder:text-warm-white/40 focus:border-gold-500/60 focus:outline-none"
+              placeholder="e.g. Maytalman Family Archive"
+              value={name}
+              disabled={!online}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <Button
+              type="submit"
+              disabled={!online || trimmed.length < 2 || createMutation.isPending}
+            >
+              {createMutation.isPending ? 'Creating…' : 'Create family'}
+            </Button>
+          </form>
+          <div className="mt-3 space-y-2">
+            <OfflineWriteNotice action="creating a family" />
+            {createMutation.isError ? (
+              <p className="text-sm text-red-300">
+                {(createMutation.error as Error).message}
+              </p>
+            ) : null}
+          </div>
+        </Card>
       )}
 
       <div className="grid gap-4">
-        {familiesQuery.isLoading ? (
+        {familiesQuery.isLoading && !familiesQuery.data ? (
           <p className="text-warm-white/60">Loading families…</p>
         ) : null}
 
-        {familiesQuery.isError ? (
+        {familiesQuery.isError && !familiesQuery.data ? (
           <p className="text-red-300">
-            Could not load families: {(familiesQuery.error as Error).message}
+            Could not load families
+            {!online ? ' while offline' : ''}: {(familiesQuery.error as Error).message}
           </p>
         ) : null}
 

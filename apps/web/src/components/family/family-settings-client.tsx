@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { OfflineWriteNotice } from '@/components/offline/offline-write-notice';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import {
   cancelInvite,
   createInvite,
@@ -37,6 +39,7 @@ interface FamilySettingsClientProps {
 
 export function FamilySettingsClient({ familyId }: FamilySettingsClientProps) {
   const queryClient = useQueryClient();
+  const online = useOnlineStatus();
   const [email, setEmail] = useState('');
   const [relationship, setRelationship] = useState<string>('other');
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
@@ -85,12 +88,14 @@ export function FamilySettingsClient({ familyId }: FamilySettingsClientProps) {
             className={inputClass}
             placeholder="Email"
             value={email}
+            disabled={!online}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
           <select
             className={inputClass}
             value={relationship}
+            disabled={!online}
             onChange={(e) => setRelationship(e.target.value)}
           >
             {RELATIONSHIPS.map((r) => (
@@ -99,10 +104,13 @@ export function FamilySettingsClient({ familyId }: FamilySettingsClientProps) {
               </option>
             ))}
           </select>
-          <Button type="submit" disabled={inviteMutation.isPending}>
+          <Button type="submit" disabled={!online || inviteMutation.isPending}>
             Send invite
           </Button>
         </form>
+        <div className="mt-3">
+          <OfflineWriteNotice action="sending invites" />
+        </div>
       </Card>
 
       <Card>
@@ -133,6 +141,7 @@ export function FamilySettingsClient({ familyId }: FamilySettingsClientProps) {
               <Button
                 variant="ghost"
                 className="mt-2"
+                disabled={!online || cancelMutation.isPending}
                 onClick={() => cancelMutation.mutate(invite.id)}
               >
                 Cancel

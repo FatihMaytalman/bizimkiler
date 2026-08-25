@@ -1,4 +1,5 @@
 import type { FamilySummary, PersonSummary, PersonVisibility } from '@aomlegacy/shared';
+import { assertOnline } from '@/lib/offline';
 
 const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ??
@@ -53,10 +54,19 @@ async function request<T>(
   token?: string,
 ): Promise<T> {
   const bearer = token ? { Authorization: `Bearer ${token}` } : authHeader();
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...bearer, ...init?.headers },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...bearer, ...init?.headers },
+    });
+  } catch {
+    throw new Error(
+      typeof navigator !== 'undefined' && !navigator.onLine
+        ? 'You are offline. Showing cached data when available.'
+        : `Network error talking to ${path}. Check your connection and try again.`,
+    );
+  }
 
   if (!response.ok) {
     let detail = '';
@@ -116,6 +126,7 @@ export async function fetchPlatformHealth(): Promise<PlatformHealth> {
 }
 
 export async function login(email: string, password: string): Promise<AuthSession> {
+  assertOnline('sign in');
   return request<AuthSession>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
@@ -127,6 +138,7 @@ export async function register(
   displayName: string,
   password: string,
 ): Promise<AuthSession> {
+  assertOnline('create an account');
   return request<AuthSession>('/auth/register', {
     method: 'POST',
     body: JSON.stringify({ email, displayName, password }),
@@ -142,6 +154,7 @@ export async function fetchFamily(id: string, token?: string): Promise<FamilySum
 }
 
 export async function createFamily(name: string): Promise<FamilySummary> {
+  assertOnline('create a family');
   return request<FamilySummary>('/families', {
     method: 'POST',
     body: JSON.stringify({ name }),
@@ -174,6 +187,7 @@ export interface CreatePersonInput {
 export async function createPerson(
   input: CreatePersonInput,
 ): Promise<PersonSummary> {
+  assertOnline('add a person');
   return request<PersonSummary>('/people', {
     method: 'POST',
     body: JSON.stringify(input),
@@ -252,17 +266,23 @@ export async function uploadMemory(
   file: File,
   memoryDate?: string,
 ): Promise<MemorySummary> {
+  assertOnline('upload a memory');
   const form = new FormData();
   form.append('familyId', familyId);
   form.append('caption', caption);
   form.append('photo', file);
   if (memoryDate) form.append('memoryDate', memoryDate);
 
-  const response = await fetch(`${apiBaseUrl}/memories`, {
-    method: 'POST',
-    headers: authHeader(),
-    body: form,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}/memories`, {
+      method: 'POST',
+      headers: authHeader(),
+      body: form,
+    });
+  } catch {
+    throw new Error('Network error during upload. Check your connection and try again.');
+  }
 
   if (!response.ok) {
     throw new Error(`Upload failed with status ${response.status}`);
@@ -284,6 +304,7 @@ export async function createInvite(
   email: string,
   relationship: string,
 ): Promise<InviteSummary> {
+  assertOnline('send an invite');
   return request<InviteSummary>('/invites', {
     method: 'POST',
     body: JSON.stringify({ familyId, email, relationship }),
@@ -291,10 +312,12 @@ export async function createInvite(
 }
 
 export async function cancelInvite(inviteId: string): Promise<void> {
+  assertOnline('cancel an invite');
   await request<void>(`/invites/${inviteId}`, { method: 'DELETE' });
 }
 
 export async function acceptInvite(token: string): Promise<{ familyId: string }> {
+  assertOnline('accept an invite');
   return request<{ familyId: string }>('/invites/accept', {
     method: 'POST',
     body: JSON.stringify({ token }),
@@ -309,6 +332,7 @@ export async function fetchRelationships(familyId: string): Promise<Relationship
 }
 
 export async function toggleMemoryReaction(memoryId: string): Promise<void> {
+  assertOnline('react to a memory');
   await request<void>(`/memories/${memoryId}/reactions/toggle`, { method: 'POST' });
 }
 
@@ -319,6 +343,7 @@ export async function fetchMemoryComments(memoryId: string): Promise<MemoryComme
 }
 
 export async function addMemoryComment(memoryId: string, body: string): Promise<void> {
+  assertOnline('add a comment');
   await request<void>(`/memories/${memoryId}/comments`, {
     method: 'POST',
     body: JSON.stringify({ body }),

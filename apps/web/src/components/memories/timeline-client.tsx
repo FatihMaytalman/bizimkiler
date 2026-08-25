@@ -9,6 +9,7 @@ import {
   toggleMemoryReaction,
 } from '@/lib/api';
 import { MemoryPhoto } from '@/components/memories/memory-photo';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 
 interface TimelineClientProps {
   familyId: string;
@@ -16,6 +17,7 @@ interface TimelineClientProps {
 
 export function TimelineClient({ familyId }: TimelineClientProps) {
   const queryClient = useQueryClient();
+  const online = useOnlineStatus();
   const memoriesQuery = useQuery({
     queryKey: ['memories', familyId],
     queryFn: () => fetchMemories(familyId),
@@ -28,8 +30,17 @@ export function TimelineClient({ familyId }: TimelineClientProps) {
     },
   });
 
-  if (memoriesQuery.isLoading) {
+  if (memoriesQuery.isLoading && !memoriesQuery.data) {
     return <p className="text-warm-white/60">Loading memories…</p>;
+  }
+
+  if (memoriesQuery.isError && !memoriesQuery.data) {
+    return (
+      <p className="text-red-300">
+        Could not load memories
+        {!online ? ' while offline' : ''}: {(memoriesQuery.error as Error).message}
+      </p>
+    );
   }
 
   const memories = memoriesQuery.data ?? [];
@@ -41,9 +52,15 @@ export function TimelineClient({ familyId }: TimelineClientProps) {
         <CardDescription>
           Upload your first family photo — one photo, one memory, one family.
         </CardDescription>
-        <Link href={`/family/${familyId}/upload`} className="mt-4 inline-block">
-          <Button>Add a memory</Button>
-        </Link>
+        {online ? (
+          <Link href={`/family/${familyId}/upload`} className="mt-4 inline-block">
+            <Button>Add a memory</Button>
+          </Link>
+        ) : (
+          <div className="mt-4">
+            <Button disabled>Add a memory</Button>
+          </div>
+        )}
       </Card>
     );
   }
@@ -62,7 +79,13 @@ export function TimelineClient({ familyId }: TimelineClientProps) {
             <div className="flex items-center gap-3 text-sm">
               <button
                 type="button"
-                className={memory.userReacted ? 'text-gold-500' : 'text-warm-white/60'}
+                disabled={!online || reactionMutation.isPending}
+                className={
+                  memory.userReacted
+                    ? 'text-gold-500 disabled:opacity-50'
+                    : 'text-warm-white/60 disabled:opacity-50'
+                }
+                title={online ? 'React' : 'Reconnect to react'}
                 onClick={() => reactionMutation.mutate(memory.id)}
               >
                 ♥ {memory.reactionCount}
